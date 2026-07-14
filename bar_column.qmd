@@ -1,0 +1,75 @@
+---
+title: "albums_exploration"
+format: html
+editor: visual
+---
+
+```{r}
+library(readr)
+library(ggplot2)
+library(dplyr)
+```
+
+```{r}
+albums <- read_csv("data/albums.csv")
+albums <- filter(albums, artist == "kanye west")
+```
+
+# Difference between geom_col and geom_bar
+
+## `geom_col()`
+
+geom_col() simply says: "Use the values I provide as the bar heights." So a y-axis **must** be provided. If there are multiple bars per category, the bars become stacked.
+
+```{r}
+albums |>
+  ggplot(aes(x=artist, y=rating, fill=project_name)) +
+  geom_col()
+```
+
+If you don't want to stack the bars but have them side-by-side, you can use `position="dodge"`
+
+```{r}
+albums |>
+  ggplot(aes(x=artist, y=rating, fill=project_name)) +
+  geom_col(position="dodge")
+```
+
+## `geom_bar()`
+
+For geom_bar(), the default behavior is to count the rows for each x value. It doesn't expect a y-value, since it's going to count that up itself. In fact, it will flag a warning if you give it one, since it thinks you're confused. 
+
+```{r}
+albums |>
+  ggplot(aes(x=artist, fill=project_name)) +
+  geom_bar()
+```
+
+You can dodge the position to not stack but have bars side-by-side.
+
+```{r}
+albums |>
+  ggplot(aes(x=artist, fill=project_name)) +
+  geom_bar(position="dodge")
+```
+
+You can use the weight aesthetic to sum the weights you choose.
+
+```{r}
+albums |>
+  ggplot(aes(x=artist, weight=rating)) +
+  geom_bar()
+```
+
+
+How aggregation is to be performed is specified as an argument to geom_bar(), which is stat = "count" for the **default** value.
+
+If you explicitly say stat = "identity" in geom_bar(), you're telling ggplot2 to skip the aggregation and that you'll provide the y values. This mirrors the natural behavior of geom_col().
+
+## stat="identity"
+
+```{r}
+albums |>
+  ggplot(aes(x=artist, y=rating, fill=project_name)) +
+  geom_bar(stat="identity", position="dodge")
+```
