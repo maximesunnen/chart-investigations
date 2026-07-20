@@ -18,7 +18,9 @@ In scatter plots, _time_ is always considered continuous
 
 **2. Bar chart  (vertical / horizontal)**
 
-1. If discrete on the x and cont on the y, and many y values exist for the same x, if no aggregation are selected (raw data) should we group the bars like so? 
+1. If discrete on the x and cont on the y, and many y values exist for the same x, if no aggregation are selected (raw data) should we group the bars like so?  
+   <img width="675" height="480" alt="big krit" src="https://github.com/user-attachments/assets/f9cd4db4-d3ea-4e9f-a568-19ae3142c3e5" />
+
 2. In bar charts, _time_ is always considered discrete
 
   
@@ -48,20 +50,16 @@ What should be supported:
 - [ ] Scales should adapt to the data
 - [ ] Tooltip with the right information and standard style
 
-  
-
 Discuss with Evgeny if it is possible to have a full **count** aggregation instead of a **count top 10**
-
-  
 
 Next steps:
 - Choose the aggregation function for the secondary axis
 - Choose if data is Raw or Aggregated
 
-**3. Line chart**
-**4. Box plot**
-**5. Pie chart**
-**6. Histogram**
+**3. Line chart**  
+**4. Box plot**  
+**5. Pie chart**  
+**6. Histogram**  
   
 | **chart** | **x** | **y** | **supported** |
 | --------- | ----- | ----- | ------------- |
