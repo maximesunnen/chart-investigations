@@ -9,7 +9,7 @@
 
 In scatter plots, _time_ is always considered continuous
 
-| **chart** | **x** | **y** | **supported** | **note**                             |
+| chart     |  x    |   y   |  supported    |  note                                |
 | --------- | ----- | ----- | ------------- | ------------------------------------ |
 | scatter   | cont  | disc  | ❌             | consider using _jitter_              |
 | scatter   | disc  | cont  | ❌             | consider using _jitter_              |
@@ -23,10 +23,14 @@ In scatter plots, _time_ is always considered continuous
    <img width="675" height="480" alt="big krit" src="https://github.com/user-attachments/assets/f9cd4db4-d3ea-4e9f-a568-19ae3142c3e5" />
 
 2. In bar charts, _time_ is always considered discrete
+3. Scales should adapt to the data
 
-  
+Next steps
+- Choose the aggregation function for the secondary axis
+- When x and y are provided: select the sub-aggregation or select none
+- Fill color: stacked
 
-| **Chart**      | **x**                          | **y**                          | Supported                  |                                                                                                                                                                                            |
+| chart          | x                              | y                              | supported                  |                                                                                                                                                                                            |
 | -------------- | ------------------------------ | ------------------------------ | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | bar            | disc                           | - _(aggregation on_ **_x_**_)_ | ✅ (needs count on backend) | aggregation functions should be selectable: count, sum, mean etc…                                                                                                                          |
 | bar (inverted) | - _(aggregation on_ **_x_**_)_ | disc                           | ✅                          | aggregation functions should be selectable: count, sum, mean etc…                                                                                                                          |
@@ -37,31 +41,14 @@ In scatter plots, _time_ is always considered continuous
 | bar            | time                           | cont                           | ❌                          | in this case time is considered _discrete_                                                                                                                                                 |
 | bar (inverted) | cont                           | time                           | ❌                          | in this case time is considered _discrete_                                                                                                                                                 |
 
-- Count instead of top 10
-- Aggregation: none or count
-- Fill / Line color  
-  
-Primary axis: the discrete axis
-Secondary axis: the continuous axis
-
-What should be supported:
-- [ ] Provide Primary only -> Use count(X) for the Y axis
-- [ ] Provide X and Y -> use mean(Y) for each category
-- [ ] Swapping the two variables (swaps the axes)
-- [ ] Scales should adapt to the data
-- [ ] Tooltip with the right information and standard style
-
-Discuss with Evgeny if it is possible to have a full **count** aggregation instead of a **count top 10**
-
-Next steps:
-- Choose the aggregation function for the secondary axis
-- Choose if data is Raw or Aggregated
-
 **3. Line chart**  
 **4. Box plot**  
 **5. Pie chart**  
 **6. Histogram**  
-  
+
+
+###### Supported charts
+
 | **chart** | **x** | **y** | **supported** |
 | --------- | ----- | ----- | ------------- |
 | bar       | disc  | –     | ✅             |
