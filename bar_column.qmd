@@ -12,14 +12,14 @@ library(dplyr)
 
 ```{r}
 albums <- read_csv("data/albums.csv")
-albums <- filter(albums, artist == "kanye west")
+albums <- filter(albums, artist == c("kanye west", "kid cudi"))
 ```
 
-# Difference between geom_col and geom_bar
+# Difference between `geom_col` and `geom_bar`
 
 ## `geom_col()`
 
-geom_col() simply says: "Use the values I provide as the bar heights." So a y-axis **must** be provided. If there are multiple bars per category, the bars become stacked.
+geom_col() simply says: "Use the values I provide as the bar heights." So a y-axis **must** be provided. If there are multiple bars per category, the bars become stacked by default.
 
 ```{r}
 albums |>
@@ -37,7 +37,7 @@ albums |>
 
 ## `geom_bar()`
 
-For geom_bar(), the default behavior is to count the rows for each x value. It doesn't expect a y-value, since it's going to count that up itself. In fact, it will flag a warning if you give it one, since it thinks you're confused. 
+For geom_bar(), the default behavior is to count the rows for each x value. It doesn't expect a y-value, since it's going to count that up itself. In fact, it will flag a warning if you give it one.
 
 ```{r}
 albums |>
@@ -53,7 +53,7 @@ albums |>
   geom_bar(position="dodge")
 ```
 
-You can use the weight aesthetic to sum the weights you choose.
+You can use the weight aesthetic to **sum** the weights you choose.
 
 ```{r}
 albums |>
@@ -61,12 +61,15 @@ albums |>
   geom_bar()
 ```
 
-
-How aggregation is to be performed is specified as an argument to geom_bar(), which is stat = "count" for the **default** value.
-
-If you explicitly say stat = "identity" in geom_bar(), you're telling ggplot2 to skip the aggregation and that you'll provide the y values. This mirrors the natural behavior of geom_col().
-
 ## stat="identity"
+
+Every layer has a `stat` "part" (statistical transformations). The stat part performs a computation on the data before it is displayed.
+
+Note: **Stats determine *what* is displayed, not *how* it is displayed.** For example, if you add [`stat_density()`](https://ggplot2.tidyverse.org/reference/geom_density.html) to a plot, a kernel density estimation is performed, which *can be displayed* with the 'geom' part of a layer.
+
+For many `geom_*()` functions, [`stat_identity()`](https://ggplot2.tidyverse.org/reference/stat_identity.html) is used, which performs no extra computation on the data. For a geom_bar the default stat is `count`, for geom_col it is `identity`.
+
+You can define the stat part of a layer in different ways: for example, you can provide it to a geom as a string.
 
 ```{r}
 albums |>
