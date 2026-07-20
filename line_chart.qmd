@@ -1,0 +1,100 @@
+---
+title: "Line Chart"
+format: html
+editor: visual
+---
+
+**Note: By default, R evaluates dates as continuous or interval data.**
+
+```{r}
+economics <- economics |>
+  mutate(date_factor = as.factor(date)) |> 
+  mutate(category = rep(c("A", "B", "C"), length.out = n()))
+head(economics)
+```
+
+# geom_line
+
+`geom_line()` connects observations **in order of the variable on the x axis**. `geom_line()` sorts by the x value before drawing (!!!).
+
+**Every line geom needs to know where one line ends and the next begins.** You cannot just hand `geom_line()` a pile of points. It has to decide which points belong to the same line and get connected, and which belong to different lines and should be kept apart.
+
+The mechanism it uses for that decision is the **`group`** aesthetic: same group value = same line; different group value = different line. `group` answers the question "which line does this row belong to?".
+
+When you don't map `group` explicitly, ggplot has to invent one. The rule it uses is: *take every discrete (categorical) **aesthetic** currently mapped, and combine them into one composite label.* Concretely, it's doing something like `interaction()` of all those discrete variables, gluing their values together row by row to produce a grouping key.
+
+```{r}
+ggplot(economics, aes(date, unemploy)) +
+  geom_line()
+```
+
+The `group` aesthetic determines which cases are connected together.
+
+### Variable type constraints
+
+Do both axis have some constraint regarding the type (categorical, continuous)?
+
+- *categorical (unique observations) vs continuous*
+
+  If only one observation per "category" you get a warning. This makes sense: how would you connect these dots so that it makes logically sense? ggplot basically says: "i am supposed to connect each dot within one factor level, but there is only one per factor level? I can not connect a dot to itself.
+
+**ggplot's default `group` aesthetic is the interaction of all discrete variables in the plot.**
+
+```{r}
+ggplot(economics, aes(date_factor, unemploy)) +
+  geom_line()
+```
+
+- *categorical (multiple observations) vs continuous*
+
+```{r}
+economics_multi <- economics |>
+  slice(rep(1:n(), each = 3)) |>
+  group_by(date) |>
+  mutate(unemploy = unemploy + c(-50, 0, 50)) |>
+  ungroup()
+```
+
+**ggplot's default `group` aesthetic is the interaction of all discrete variables in the plot.** `geom_line()` now draws a separate line **within each factor level**, and never connects across levels:
+
+```{r}
+ggplot(economics_multi, aes(date_factor, unemploy)) +
+  geom_line()
+```
+
+- continuous vs continuous
+
+```{r}
+ggplot(economics, aes(unemploy, unemploy, color=date)) +
+  geom_line()
+```
+
+### 
+
+### Most likely use case
+
+The classical use case will be **time series**: time (as a continuous variable) on the x-axis and some continuous quantity. A third dimension to split the line charts will also be very useful.
+
+```{r}
+ggplot(economics, aes(date, unemploy, colour=category)) +
+  geom_line(key_glyph="timeseries")
+```
+
+- Note: x and y can be flipped
+
+- time is not a separate "case": decide if time is handled as categorical or continuous and the table below holds
+
+- for supported combinations, user should be able to "group" by a third (categorical!!!) variable: not sure how we should call this. colour could work, but group_by and then a palette may be better?
+
+- chart display options should include: alpha, linetype, linewidth
+
+- if echarts allows this: legend should have this timeseries keyglyph
+
+- TBD: N/A handling! check echarts, a gap in the line is not a problem to me?
+
+| X | Y | Supported | Note |
+|------------------|------------------|------------------|------------------|
+| categorical | categorical | NO |  |
+| categorical (1 observation per category) | continuous | YES |  |
+| categorical (multiple observations per category) | continuous | YES |  |
+| continuous (time!) | continuous | **YES** (most common use case) |  |
