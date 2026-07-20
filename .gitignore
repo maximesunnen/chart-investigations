@@ -1,1 +1,14 @@
 .obsidian
+
+# Quarto render output
+/.quarto/
+*.html
+/*_files/
+/_site/
+/_freeze/
+
+# R
+.Rproj.user/
+.Rhistory
+.RData
+.Rapp.history
