@@ -4,6 +4,12 @@ format: html
 editor: visual
 ---
 
+```{r}
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+```
+
 **Note: By default, R evaluates dates as continuous or interval data.**
 
 ```{r}
@@ -15,37 +21,41 @@ head(economics)
 
 # geom_line
 
-`geom_line()` connects observations **in order of the variable on the x axis**. `geom_line()` sorts by the x value before drawing (!!!).
+`geom_line()` connects observations **in order of the variable on the x axis**, sorting x-values before drawing by default.
 
-**Every line geom needs to know where one line ends and the next begins.** You cannot just hand `geom_line()` a pile of points. It has to decide which points belong to the same line and get connected, and which belong to different lines and should be kept apart.
+Every line geom needs to know where one line ends and the next begins, so you cannot just provide a bunch of points to `geom_line()`. It has to decide which points belong to the same line and get connected, and which belong to different lines and should be kept apart. The mechanism used is the **`group`** aesthetic:
 
-The mechanism it uses for that decision is the **`group`** aesthetic: same group value = same line; different group value = different line. `group` answers the question "which line does this row belong to?".
+- same group value = same line
 
-When you don't map `group` explicitly, ggplot has to invent one. The rule it uses is: *take every discrete (categorical) **aesthetic** currently mapped, and combine them into one composite label.* Concretely, it's doing something like `interaction()` of all those discrete variables, gluing their values together row by row to produce a grouping key.
+- different group value = different line
+
+`group` answers the question "which line does this row belong to?"
+
+When you don't map `group` explicitly ggplot does it implicitly and the rule it uses is: *take every discrete (categorical) **aesthetic** currently mapped, and combine them into one composite label.* More precisely, it's doing something like `interaction()` of all those discrete variables, gluing their values together row by row to produce a grouping key.
+
+Phrased differently: **ggplot's default `group` aesthetic is the interaction of all discrete variables in the plot.**
 
 ```{r}
 ggplot(economics, aes(date, unemploy)) +
   geom_line()
 ```
 
-The `group` aesthetic determines which cases are connected together.
-
 ### Variable type constraints
 
 Do both axis have some constraint regarding the type (categorical, continuous)?
 
-- *categorical (unique observations) vs continuous*
+- ***categorical (unique observations) vs continuous***
 
-  If only one observation per "category" you get a warning. This makes sense: how would you connect these dots so that it makes logically sense? ggplot basically says: "i am supposed to connect each dot within one factor level, but there is only one per factor level? I can not connect a dot to itself.
-
-**ggplot's default `group` aesthetic is the interaction of all discrete variables in the plot.**
+  If there is only one observation per "category" you get a warning. This makes sense, because how is ggplot supposed to connect these dots for it to make sense? You're essentially saying "*connect each dot within one factor level*", but there is only one per factor level and a dot cannot be connected to itself.
 
 ```{r}
 ggplot(economics, aes(date_factor, unemploy)) +
   geom_line()
 ```
 
-- *categorical (multiple observations) vs continuous*
+- ***categorical (multiple observations) vs continuous***
+
+  By default, geom_line now connects dots with lines for all observations within **each** factor level. Observations from different factor levels are never connected.
 
 ```{r}
 economics_multi <- economics |>
@@ -53,19 +63,18 @@ economics_multi <- economics |>
   group_by(date) |>
   mutate(unemploy = unemploy + c(-50, 0, 50)) |>
   ungroup()
+head(economics_multi)
 ```
-
-**ggplot's default `group` aesthetic is the interaction of all discrete variables in the plot.** `geom_line()` now draws a separate line **within each factor level**, and never connects across levels:
 
 ```{r}
 ggplot(economics_multi, aes(date_factor, unemploy)) +
   geom_line()
 ```
 
-- continuous vs continuous
+- **continuous vs continuous**
 
 ```{r}
-ggplot(economics, aes(unemploy, unemploy, color=date)) +
+ggplot(economics, aes(unemploy, pop, color=date)) +
   geom_line()
 ```
 
@@ -73,28 +82,143 @@ ggplot(economics, aes(unemploy, unemploy, color=date)) +
 
 ### Most likely use case
 
-The classical use case will be **time series**: time (as a continuous variable) on the x-axis and some continuous quantity. A third dimension to split the line charts will also be very useful.
+The classical use case will be **time series**: time *vs* some continuous quantity. Additionally,
+
+- a third mapping to split the line chart into line charts per unique value in the mapping. Not sure how to call this mapping (colour?, group_by?)
 
 ```{r}
 ggplot(economics, aes(date, unemploy, colour=category)) +
   geom_line(key_glyph="timeseries")
 ```
 
-- Note: x and y can be flipped
+- a summary function to apply in case there are multiple y-values for a single x-value
 
-- time is not a separate "case": decide if time is handled as categorical or continuous and the table below holds
+  - e.g. multiple values for a specific time (compare both plots below)
 
-- for supported combinations, user should be able to "group" by a third (categorical!!!) variable: not sure how we should call this. colour could work, but group_by and then a palette may be better?
+```{r}
+# Simulate raw data: ~20 measurements per day over 10 days
+raw_data <- data.frame(
+  date = rep(seq(as.Date("2024-01-01"), by = "day", length.out = 10), each = 20),
+  response_time = rnorm(200, mean = rep(c(120, 125, 118, 130, 135, 128, 122, 119, 124, 121), each = 20), sd = 8)
+)
+```
 
-- chart display options should include: alpha, linetype, linewidth
+```{r}
+# plot 1
+plot_1 <- ggplot(raw_data, aes(date, response_time)) +
+  geom_line()
 
-- if echarts allows this: legend should have this timeseries keyglyph
+# plot 2
+set.seed(42)
 
-- TBD: N/A handling! check echarts, a gap in the line is not a problem to me?
+summary_data <- raw_data |>
+  group_by(date) |>
+  summarise(
+    mean_rt = mean(response_time),
+    sd_rt   = sd(response_time),
+    se_rt   = sd_rt / sqrt(n()),
+    .groups = "drop"
+  )
 
-| X | Y | Supported | Note |
-|------------------|------------------|------------------|------------------|
-| categorical | categorical | NO |  |
-| categorical (1 observation per category) | continuous | YES |  |
-| categorical (multiple observations per category) | continuous | YES |  |
-| continuous (time!) | continuous | **YES** (most common use case) |  |
+summary_data
+
+plot_2 <- ggplot(summary_data, aes(x = date, y = mean_rt)) +
+  geom_ribbon(aes(ymin = mean_rt - sd_rt, ymax = mean_rt + sd_rt), 
+              fill = "steelblue", alpha = 0.2) +
+  geom_line(color = "steelblue", linewidth = 1) +
+  geom_point(color = "steelblue", size = 2) +
+  labs(x = "Date", y = "Response Time (ms)",
+       title = "Daily Average Response Time ± 1 SD") +
+  theme_minimal()
+
+# works implicitely too
+# ggplot(raw_data, aes(x = date, y = response_time)) +
+#   stat_summary(fun = mean, geom = "line", color = "steelblue", linewidth = 1) +
+#   stat_summary(fun = mean, geom = "point", color = "steelblue", size = 2) +
+#   stat_summary(fun.data = mean_sdl, fun.args = list(mult = 1), 
+#                geom = "ribbon", alpha = 0.2, fill = "steelblue") +
+#   labs(x = "Date", y = "Response Time (ms)",
+#        title = "Daily Average Response Time ± 1 SD (computed by ggplot)") +
+#   theme_minimal()
+
+plot_1 + plot_2
+```
+
+## Important considerations
+
+- x and y axis can theoretically be flipped (if we want to support this is another question)
+
+- for line charts in Adept, categorical values should not be supported
+
+  - only time and continuous
+
+- chart display options to include:
+
+  - for the line itself: alpha, linetype, linewidth
+
+  - for the legend: timeseries keyglyph, color palette (probably use the global one)
+
+- **TBD:** `N/A` handling (check echarts default behaviour; in my opinion a gap is the best choice)
+
+  - otherwise maybe a toggle to include/exclude NAs?
+
+- no enforced zero baseline if we don't have to
+
+  - check how echarts calculates the scale
+
+- no curved/smoothed interpolation between points
+
+  - line charts should connect dots in **straight lines**
+
+- summary functions to use if there is not a 1:1 mapping between x-and y
+
+  - maybe even precompute the number of observations per x-axis factor: if there are non-unique ones, add a message/hint to add
+
+  - mean, median, ...
+
+  - option to show a shaded confidence interval
+
+  - check how to do this in echarts: for mean+uncertainty we probably need a function that
+
+    1.  groups variables by unique x-axis values
+    2.  computes mean per x-axis "category"
+    3.  computes confidence interval per x-axis "category"
+    4.  outputs per category: mean value, upper level, lower level
+
+  - like `stat_summary(fun.data = mean_sdl)` in ggplot
+
+## Zoom on the summary function feature
+
+In the plot below, we plot time vs continuous (x vs y) data where for each unique x value, there are multiple associated y values.
+
+```{r}
+ggplot(raw_data, aes(date, response_time)) +
+  geom_line()
+```
+
+Introducing a summary function to somehow summarize the indiviual points per unique x-axis is probably much more suited here. You can do this directly in ggplot without the explicit data transformations:
+
+**`stat_summary`** allows for tremendous flexibility in the specification of summary functions. The summary function can either operate on a data frame (with argument name **`fun.data`**) or on a vector (**`fun.y`**, **`fun.ymax`**, **`fun.ymin`**).
+
+- Internally, its default behavior is: **split the data into groups by every distinct value of `x`**, then apply your summary function (`fun` or `fun.data`) separately to the `y`-values within each group.
+
+```{r}
+ggplot(raw_data, aes(x = date, y = response_time)) +
+  stat_summary(fun = mean, geom = "line", color = "steelblue", linewidth = 1) +
+  stat_summary(fun = mean, geom = "point", color = "steelblue", size = 2) +
+  stat_summary(fun.data = mean_sdl, fun.args = list(mult = 1), 
+               geom = "ribbon", alpha = 0.2, fill = "steelblue") +
+  labs(x = "Date", y = "Response Time (ms)",
+       title = "Daily Average Response Time ± 1 SD (computed by ggplot)") +
+  theme_minimal()
+```
+
+# Compatibility Table
+
+| X | Y | Supported (technically) | Supported (practically) | Notes |
+|---------------------------|-----------|-------------|------------|------------------|
+| categorical | categorical | NO | NO |  |
+| categorical (1 obs. per category) | continuous | YES | NO |  |
+| categorical (multiple obs. per category) | continuous | YES | NO |  |
+| continuous | continuous | **YES** | **YES** |  |
+| time | continuous | **YES** | **YES** |  |
