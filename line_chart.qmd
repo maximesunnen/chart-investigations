@@ -1,16 +1,27 @@
 ---
 title: "Line Chart"
-format: html
+format:
+  html:
+    number-sections: true
 editor: visual
 ---
 
 ```{r}
+#| echo: false
+#| warning: false
+
 library(dplyr)
 library(ggplot2)
 library(patchwork)
 ```
 
-**Note: By default, R evaluates dates as continuous or interval data.**
+**Preliminary notes**
+
+- by default, R evaluates dates (`date` type) as continuous or interval data.
+
+# Datasets
+
+## [Economics dataset with an additional category (`character`) column and a `date_factor`]{.underline} [column]{.underline}
 
 ```{r}
 economics <- economics |>
@@ -19,43 +30,7 @@ economics <- economics |>
 head(economics)
 ```
 
-# geom_line
-
-`geom_line()` connects observations **in order of the variable on the x axis**, sorting x-values before drawing by default.
-
-Every line geom needs to know where one line ends and the next begins, so you cannot just provide a bunch of points to `geom_line()`. It has to decide which points belong to the same line and get connected, and which belong to different lines and should be kept apart. The mechanism used is the **`group`** aesthetic:
-
-- same group value = same line
-
-- different group value = different line
-
-`group` answers the question "which line does this row belong to?"
-
-When you don't map `group` explicitly ggplot does it implicitly and the rule it uses is: *take every discrete (categorical) **aesthetic** currently mapped, and combine them into one composite label.* More precisely, it's doing something like `interaction()` of all those discrete variables, gluing their values together row by row to produce a grouping key.
-
-Phrased differently: **ggplot's default `group` aesthetic is the interaction of all discrete variables in the plot.**
-
-```{r}
-ggplot(economics, aes(date, unemploy)) +
-  geom_line()
-```
-
-### Variable type constraints
-
-Do both axis have some constraint regarding the type (categorical, continuous)?
-
-- ***categorical (unique observations) vs continuous***
-
-  If there is only one observation per "category" you get a warning. This makes sense, because how is ggplot supposed to connect these dots for it to make sense? You're essentially saying "*connect each dot within one factor level*", but there is only one per factor level and a dot cannot be connected to itself.
-
-```{r}
-ggplot(economics, aes(date_factor, unemploy)) +
-  geom_line()
-```
-
-- ***categorical (multiple observations) vs continuous***
-
-  By default, geom_line now connects dots with lines for all observations within **each** factor level. Observations from different factor levels are never connected.
+## Economics dataset [with a category (`character`) column and multiple unemploy values for each unique row]{.underline}
 
 ```{r}
 economics_multi <- economics |>
@@ -66,34 +41,7 @@ economics_multi <- economics |>
 head(economics_multi)
 ```
 
-```{r}
-ggplot(economics_multi, aes(date_factor, unemploy)) +
-  geom_line()
-```
-
-- **continuous vs continuous**
-
-```{r}
-ggplot(economics, aes(unemploy, pop, color=date)) +
-  geom_line()
-```
-
-### 
-
-### Most likely use case
-
-The classical use case will be **time series**: time *vs* some continuous quantity. Additionally,
-
-- a third mapping to split the line chart into line charts per unique value in the mapping. Not sure how to call this mapping (colour?, group_by?)
-
-```{r}
-ggplot(economics, aes(date, unemploy, colour=category)) +
-  geom_line(key_glyph="timeseries")
-```
-
-- a summary function to apply in case there are multiple y-values for a single x-value
-
-  - e.g. multiple values for a specific time (compare both plots below)
+## [Simulated raw data: 20 measurements per `date` over 10 days]{.underline}
 
 ```{r}
 # Simulate raw data: ~20 measurements per day over 10 days
@@ -101,9 +49,118 @@ raw_data <- data.frame(
   date = rep(seq(as.Date("2024-01-01"), by = "day", length.out = 10), each = 20),
   response_time = rnorm(200, mean = rep(c(120, 125, 118, 130, 135, 128, 122, 119, 124, 121), each = 20), sd = 8)
 )
+head(raw_data)
 ```
 
+# geom_line
+
+`geom_line()` connects observations **in order of the variable on the x axis**, sorting x-values before drawing *by default*. Every line geom needs to know where one line ends and the next begins, so you cannot just provide a bunch of points to `geom_line()`. It has to decide which points belong to the same line and get connected, and which belong to different lines and should be kept apart.
+
+The mechanism used is the **`group`** aesthetic:
+
+- same group value = same line
+
+- different group value = different line
+
+Without an explicit `group` mapping, ggplot implicitly takes *every discrete (categorical) **aesthetic** currently mapped* and **combines** them into one composite label. More precisely, it's doing something like `interaction()` of all those discrete variables, gluing their values together row by row to produce a grouping key. Phrased differently: **ggplot's default `group` aesthetic is the interaction of all discrete variables in the plot (**i.e. every unique combination of their values becomes one group)**.** All rows sharing the same **`group`** values get connected into a single line.
+
+Example: If you have `color = region` (3 levels) and `linetype = product` (2 levels), the default grouping is the 6 combinations `region × product`. C**ontinuous variables are ignored** when forming groups. Mapping something to `x`, `y`, or a continuous `color` gradient does *not* create groups.
+
 ```{r}
+ggplot(economics, aes(date, unemploy)) +
+  geom_line()
+```
+
+::: {.callout-important collapse="true"}
+You can set `group` explicitly:
+
+```{r}
+ggplot(economics, aes(x = date, y = unemploy, group = category)) +
+  geom_line()          # one line per region, all the same color
+```
+
+`group` tells ggplot2 how to split the data ***without*** also changing color, linetype, etc. If you set `group = region` explicitly, that **overrides** the interaction default entirely — ggplot2 uses your `group` and stops auto-combining the discrete aesthetics. That's occasionally surprising: mapping `color` to something discrete no longer subdivides the lines once you've pinned `group`. If you want both to matter, you'd use `group = interaction(region, year_factor)`.
+:::
+
+# Variable type constraints
+
+## ***categorical vs continuous***
+
+### unique observations
+
+For unique observations per "category", a warning is shown. Intuitively this makes sense: how is ggplot supposed to meaningfully connect these dots? You're essentially saying "*connect each dot within one factor level*", but there is only one per factor level. A dot cannot be connected to itself.
+
+```{r}
+ggplot(economics, aes(date_factor, unemploy)) +
+  geom_line()
+```
+
+### multiple observations
+
+By default, `geom_line` now connects dots for all observations **within** each factor level. Observations from different factor levels are never connected.
+
+```{r}
+ggplot(economics_multi, aes(date_factor, unemploy)) +
+  geom_line()
+```
+
+## **continuous vs continuous**
+
+Same default behavior: the x-axis is sorted.
+
+```{r}
+ggplot(economics, aes(unemploy, pop)) +
+  geom_line()
+```
+
+# Additional mappings (`colour` examples)
+
+## `chr` and `fct` colour aesthetic
+
+`chr` variables are internally coerced into a `factor`, so the behavior is identical. In Adept, we should stick to `CATEGORY` in my opinion and not do any internal coercion to other types.
+
+```{r}
+#| out-width: "100%"
+chr_colour_mapping <- ggplot(economics, aes(date, unemploy, colour=as.character(category))) +
+  geom_line()
+
+factor_colour_mapping <- ggplot(economics, aes(date, unemploy, colour=as.factor(category))) +
+  geom_line()
+
+chr_colour_mapping + factor_colour_mapping
+```
+
+## continuous colour aesthetic
+
+Any numeric mapped to an aesthetic gets a continuous colour scale.
+
+::: callout-danger
+I think this plot below where a mapped variable needs a continuous color scale is a real limitation in ECharts. VisualMap initally felt like the right tool, but that does not work as expected.
+:::
+
+```{r}
+ggplot(economics, aes(x = date, y = unemploy, colour = pop)) +
+  geom_line()
+```
+
+# Most likely use case: time series
+
+A very common (and probably the most frequent) use case for line charts are time series: date(time) *vs* some continuous quantity. Additionally,
+
+- a **third (categorical) mapping** to create one line par unique value mapping variable value
+
+```{r}
+ggplot(economics, aes(date, unemploy, colour=category)) +
+  geom_line(key_glyph="timeseries")
+```
+
+- a **summary function** to aggregate multiple y-values for a single x-value
+
+  - Example: multiple values for a specific time (compare both plots below)
+
+```{r}
+#| echo: false
+
 # plot 1
 plot_1 <- ggplot(raw_data, aes(date, response_time)) +
   geom_line()
@@ -146,39 +203,28 @@ plot_1 + plot_2
 
 ## Important considerations
 
-- x and y axis can theoretically be flipped (if we want to support this is another question)
+- x and y axis can theoretically be flipped \[not sure if we should provide this ability\]
 
-- for line charts in Adept, categorical values should not be supported
+- the use case for categorical (non-date) variables on the x-axis is so limited (I cannot think of one), that I think it's worth considering to **not** support them in Adept. This way we can focus on time vs continuous (+ additional dimension mappings).
 
-  - only time and continuous
-
-- chart display options to include:
+- chart display options should include:
 
   - for the line itself: alpha, linetype, linewidth
+  - for the legend: timeseries keyglyph, color palette (probably inherited from a global palette)
 
-  - for the legend: timeseries keyglyph, color palette (probably use the global one)
+- **TBD:** `N/A` handling (check echarts default behaviour; in my opinion a gap is the best choice). Otherwise maybe a toggle to include/exclude `NA`s?
 
-- **TBD:** `N/A` handling (check echarts default behaviour; in my opinion a gap is the best choice)
+- don't enforce a zero baseline (there is a control for this in ECharts)
 
-  - otherwise maybe a toggle to include/exclude NAs?
+- no curved/smoothed interpolation between points: line charts connect dots in **straight lines**.
 
-- no enforced zero baseline if we don't have to
+- summary functions: useful when there is no 1:1 mapping between x and y (multiple y's for a single x)
 
-  - check how echarts calculates the scale
-
-- no curved/smoothed interpolation between points
-
-  - line charts should connect dots in **straight lines**
-
-- summary functions to use if there is not a 1:1 mapping between x-and y
-
-  - maybe even precompute the number of observations per x-axis factor: if there are non-unique ones, add a message/hint to add
-
-  - mean, median, ...
+  - can we pre-compute a `group_by` x-variable to know how many y-values there are per x-variable group? In case there are non-unique ones ones (multiple observations for a signel date), we could add a message or hint.
 
   - option to show a shaded confidence interval
 
-  - check how to do this in echarts: for mean+uncertainty we probably need a function that
+  - check how to do this in ECharts: for mean+uncertainty we probably need a function that
 
     1.  groups variables by unique x-axis values
     2.  computes mean per x-axis "category"
@@ -187,25 +233,31 @@ plot_1 + plot_2
 
   - like `stat_summary(fun.data = mean_sdl)` in ggplot
 
+  - check how much of this is already implemented in the `/stats` endpoint
+
 ## Zoom on the summary function feature
 
-In the plot below, we plot time vs continuous (x vs y) data where for each unique x value, there are multiple associated y values.
+### Multiple y-values per date {#multi-y-per-date}
+
+In the plot below, we plot date vs response_time (continuous). For each unique x value, there are multiple associated y values.
 
 ```{r}
 ggplot(raw_data, aes(date, response_time)) +
   geom_line()
 ```
 
-Introducing a summary function to somehow summarize the indiviual points per unique x-axis is probably much more suited here. You can do this directly in ggplot without the explicit data transformations:
+Introducing a summary function to summarize individual points per unique x-axis is the better choice here. In ggplot you can do this without any explicit data transformations using `stat_summary`:
 
-**`stat_summary`** allows for tremendous flexibility in the specification of summary functions. The summary function can either operate on a data frame (with argument name **`fun.data`**) or on a vector (**`fun.y`**, **`fun.ymax`**, **`fun.ymin`**).
+::: callout-note
+`stat_summary` allows for tremendous flexibility in the specification of summary functions. The summary function can either operate on a data frame (with argument name **`fun.data`**) or on a vector (**`fun.y`**, **`fun.ymax`**, **`fun.ymin`**).
 
-- Internally, its default behavior is: **split the data into groups by every distinct value of `x`**, then apply your summary function (`fun` or `fun.data`) separately to the `y`-values within each group.
+The default behavior is to **split the data into groups by every distinct value of `x`**, then apply your summary function (`fun` or `fun.data`) separately to the `y`-values within each group.
+:::
 
 ```{r}
 ggplot(raw_data, aes(x = date, y = response_time)) +
   stat_summary(fun = mean, geom = "line", color = "steelblue", linewidth = 1) +
-  stat_summary(fun = mean, geom = "point", color = "steelblue", size = 2) +
+  #stat_summary(fun = mean, geom = "point", color = "steelblue", size = 2) +
   stat_summary(fun.data = mean_sdl, fun.args = list(mult = 1), 
                geom = "ribbon", alpha = 0.2, fill = "steelblue") +
   labs(x = "Date", y = "Response Time (ms)",
@@ -213,12 +265,55 @@ ggplot(raw_data, aes(x = date, y = response_time)) +
   theme_minimal()
 ```
 
+# Edge cases
+
+- Mapping (not x or y) to continuous variables. Hard to reproduce in ECharts (and probably not scalable with increasing data points). You need a custom renderer to color individual pixels.
+
+```{r}
+ggplot(economics, aes(date, unemploy, colour=pop)) +
+  geom_line(key_glyph="timeseries")
+```
+
+- Mapping (not x or y) to date variables. ggplot uses a specialized continuous scale.
+
+```{r}
+ggplot(economics, aes(date, unemploy, colour=date)) +
+  geom_line(key_glyph="timeseries")
+```
+
+- Mapping (not x or y) to categorical variables with multiple values per category
+
+```{r}
+ggplot(raw_data, aes(date, response_time)) +
+  geom_line()
+```
+
+- multiple mappings (not x or y) (4th, 5th, dimension...)
+
+- Mapping (not x or y) to categorical variables with too many groups. What should be the cutoff. Note that below you only see the legend.
+
+```{r}
+ggplot(economics, aes(date, unemploy, colour=date_factor)) +
+  geom_line(key_glyph="timeseries")
+```
+
+- how to handle `N/A`s
+
 # Compatibility Table
 
+## X and Y
+
 | X | Y | Supported (technically) | Supported (practically) | Notes |
-|---------------------------|-----------|-------------|------------|------------------|
+|---------------|---------------|---------------|---------------|---------------|
 | categorical | categorical | NO | NO |  |
 | categorical (1 obs. per category) | continuous | YES | NO |  |
 | categorical (multiple obs. per category) | continuous | YES | NO |  |
 | continuous | continuous | **YES** | **YES** |  |
 | time | continuous | **YES** | **YES** |  |
+
+## Additional mappings
+
+| Mapping | Supported (technically) | Supported (practically) | Note |
+|----|----|----|----|
+| categorical | **YES** | **YES** |  |
+| continuous | YES | **NO** | ECharts limitation (?) |
