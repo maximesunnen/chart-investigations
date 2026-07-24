@@ -1,0 +1,94 @@
+---
+title: "Box Plots"
+format: html
+editor: visual
+---
+
+## Box Plots
+
+```{r}
+#| echo: false
+library(ggplot2)
+library(dplyr)
+library(patchwork)
+
+economics <- economics |>
+  mutate(category = rep(c("A", "B", "C"), length.out = n()))
+head(economics)
+```
+
+A boxplot fundamentally does two things:
+
+- summarizes one **continuous variable** (five-number summary) \[measured axis\]
+
+- positions boxes along the other**, categorical axis** (one box per level). \[positioning/grouping axis\]
+
+In ggplot you can create a boxplot in multiple different ways:
+
+- provide only a continuous (measured) axis: since ggplot detects no categorical axis, you get a single group
+
+```{r}
+continuous_single_aes_horizontal <- ggplot(economics, aes(pop)) + 
+  geom_boxplot(outliers=TRUE)
+continuous_single_aes_vertical <- ggplot(economics, aes(y=pop)) + 
+  geom_boxplot(outliers=TRUE)
+
+continuous_single_aes_horizontal + continuous_single_aes_vertical
+```
+
+- provide a continuous and a grouping axis: here `category` is discrete, so it defines the groups (one box per level), and `pop` (continuous) is what's summarized.
+
+```{r}
+classic_horizontal <- ggplot(economics, aes(x=category, y=pop)) + 
+  geom_boxplot(outliers=TRUE)
+classic_vertical <- ggplot(economics, aes(x=pop, y=category)) + 
+  geom_boxplot(outliers=TRUE)
+
+classic_horizontal + classic_vertical
+```
+
+Boxplots do not **need** a categorical variable at all. So, we should enable passing a single variable too (e.g just an x-axis or just a y-axis). Our code should figure out the type and what to display:
+
+- 1 category, 0 continuous: no plot
+
+- 1 category, 1 continuous: plot
+
+- 0 category, 1 continuous: plot
+
+### Box plot with a date
+
+```{r}
+ggplot(economics, aes(x=date)) + 
+  geom_boxplot(outliers=TRUE)
+```
+
+```{r}
+ggplot(economics, aes(x=date, y=category)) + 
+  geom_boxplot(outliers=TRUE)
+```
+
+## Compatibility table
+
+**Note**: axis can be flipped.
+
+| X-axis     | Y-axis     | Supported (in ggplot) | Plot                          |
+|------------------|------------------|------------------|------------------|
+| category   | NA         | No                    | **not supported**             |
+| category   | continuous | Yes                   | show boxplot per category     |
+| continuous | NA         | Yes                   | show single boxplot           |
+| date       | NA         | Yes\*                 | show single boxplot           |
+| date       | category   | Yes\*                 | show one boxplot per category |
+| date       | continuous | No                    | **not supported**             |
+
+\*remember that dates are internally represented as numeric (i.e continuous)
+
+## Open questions for adept
+
+- do we want to support dates as continuous variable?
+
+  - we could probably do it by simply adjusting the "type" of the axis to "time" in echarts, so that the labels are nicely rendered (TBD)
+
+```{r}
+p <- ggplot(mpg, aes(class, hwy))
+p + geom_boxplot()
+```

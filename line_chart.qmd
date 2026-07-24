@@ -347,19 +347,13 @@ ggplot(economics, aes(date, unemploy, colour=as.factor(date))) +
 
 ## X and Y
 
-+------------------------------------------+-------------+-------------------------+-------------------------+-----------+
-| X                                        | Y           | Supported (technically) | Supported (practically) | Notes     |
-+==========================================+=============+=========================+=========================+===========+
-| categorical                              | categorical | NO                      | NO                      |           |
-+------------------------------------------+-------------+-------------------------+-------------------------+-----------+
-| categorical (1 obs. per category)        | continuous  | YES                     | NO                      |           |
-+------------------------------------------+-------------+-------------------------+-------------------------+-----------+
-| categorical (multiple obs. per category) | continuous  | YES                     | NO                      |           |
-+------------------------------------------+-------------+-------------------------+-------------------------+-----------+
-| continuous                               | continuous  | **YES**                 | **YES**                 |           |
-+------------------------------------------+-------------+-------------------------+-------------------------+-----------+
-| time                                     | continuous  | **YES**                 | **YES**                 |           |
-+------------------------------------------+-------------+-------------------------+-------------------------+-----------+
+| X | Y | Supported (technically) | Supported (practically) | Notes |
+|----|----|----|----|----|
+| categorical | categorical | NO | NO |  |
+| categorical (1 obs. per category) | continuous | YES | NO |  |
+| categorical (multiple obs. per category) | continuous | YES | NO |  |
+| continuous | continuous | **YES** | **YES** |  |
+| time | continuous | **YES** | **YES** |  |
 
 ## Additional mappings
 
