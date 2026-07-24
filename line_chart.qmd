@@ -21,16 +21,16 @@ library(patchwork)
 
 # Datasets
 
-## [Economics dataset with an additional category (`character`) column and a `date_factor`]{.underline} [column]{.underline}
+## Economics dataset with an additional category (`character`) column
 
 ```{r}
 economics <- economics |>
-  mutate(date_factor = as.factor(date)) |> 
+ 
   mutate(category = rep(c("A", "B", "C"), length.out = n()))
 head(economics)
 ```
 
-## Economics dataset [with a category (`character`) column and multiple unemploy values for each unique row]{.underline}
+## Economics dataset with a category (`character`) column and multiple unemploy values for each unique row
 
 ```{r}
 economics_multi <- economics |>
@@ -41,7 +41,7 @@ economics_multi <- economics |>
 head(economics_multi)
 ```
 
-## [Simulated raw data: 20 measurements per `date` over 10 days]{.underline}
+## Simulated data: 20 random measurements per `date` over 10 days
 
 ```{r}
 # Simulate raw data: ~20 measurements per day over 10 days
@@ -54,7 +54,7 @@ head(raw_data)
 
 # geom_line
 
-`geom_line()` connects observations **in order of the variable on the x axis**, sorting x-values before drawing *by default*. Every line geom needs to know where one line ends and the next begins, so you cannot just provide a bunch of points to `geom_line()`. It has to decide which points belong to the same line and get connected, and which belong to different lines and should be kept apart.
+`geom_line()` connects observations **in order of the variable on the x axis**, sorting x-values before drawing *by default*. Every line geom needs to know where one line ends and the next begins. It has to decide which points belong to the same line and get connected, and which belong to different lines and should be kept apart.
 
 The mechanism used is the **`group`** aesthetic:
 
@@ -62,9 +62,9 @@ The mechanism used is the **`group`** aesthetic:
 
 - different group value = different line
 
-Without an explicit `group` mapping, ggplot implicitly takes *every discrete (categorical) **aesthetic** currently mapped* and **combines** them into one composite label. More precisely, it's doing something like `interaction()` of all those discrete variables, gluing their values together row by row to produce a grouping key. Phrased differently: **ggplot's default `group` aesthetic is the interaction of all discrete variables in the plot (**i.e. every unique combination of their values becomes one group)**.** All rows sharing the same **`group`** values get connected into a single line.
+Without an explicit `group` mapping, ggplot implicitly takes *every discrete (categorical) **aesthetic** currently mapped* and **combines** them into one composite label. More precisely, it's doing something like `interaction()` of all those discrete variables, gluing their values together row by row to produce a grouping key. Put differently: ggplot's **default** `group` aesthetic is the **interaction of all discrete variables** in the plot (i.e. every unique combination of their values becomes one group)**.** All rows sharing the same **`group`** values get connected into a single line. Continuous variables are **ignored** when forming groups.
 
-Example: If you have `color = region` (3 levels) and `linetype = product` (2 levels), the default grouping is the 6 combinations `region × product`. C**ontinuous variables are ignored** when forming groups. Mapping something to `x`, `y`, or a continuous `color` gradient does *not* create groups.
+**Example:** If you have `color = region` (3 levels) and `linetype = product` (2 levels), the default grouping is the 6 combinations `region × product`. Mapping something to `x`, `y`, or a continuous `color` gradient does *not* create groups.
 
 ```{r}
 ggplot(economics, aes(date, unemploy)) +
@@ -72,41 +72,68 @@ ggplot(economics, aes(date, unemploy)) +
 ```
 
 ::: {.callout-important collapse="true"}
-You can set `group` explicitly:
+You can set the `group` explicitly:
 
 ```{r}
 ggplot(economics, aes(x = date, y = unemploy, group = category)) +
   geom_line()          # one line per region, all the same color
 ```
 
-`group` tells ggplot2 how to split the data ***without*** also changing color, linetype, etc. If you set `group = region` explicitly, that **overrides** the interaction default entirely — ggplot2 uses your `group` and stops auto-combining the discrete aesthetics. That's occasionally surprising: mapping `color` to something discrete no longer subdivides the lines once you've pinned `group`. If you want both to matter, you'd use `group = interaction(region, year_factor)`.
+`group` tells ggplot2 how to split the data ***without*** also changing color, line type, etc.
+
+```{r}
+ggplot(economics, aes(x = date, y = unemploy, group = category)) +
+  geom_line() # one line per region, all the same color
+```
+
+\
+If you want both to matter, you'd use `group = interaction(region, year_factor)`.
 :::
 
 # Variable type constraints
 
 ## ***categorical vs continuous***
 
-### unique observations
+::: callout-note
+- By default, ggplot does not connect dots from *different* categories, but only dots *within* one category.
 
-For unique observations per "category", a warning is shown. Intuitively this makes sense: how is ggplot supposed to meaningfully connect these dots? You're essentially saying "*connect each dot within one factor level*", but there is only one per factor level. A dot cannot be connected to itself.
+- `chr`, `factor` share behaviour and can be seen as "categorical"
+
+- `date` are handled specifically
+:::
+
+### unique observations per category
+
+If each category contains only a unique observation, a warning is shown. Intuitively this makes sense: how can you meaningfully connect the dots? You're essentially saying "*connect each dot **within** one factor level*", but there is only one per factor level. A dot cannot be connected to itself.
 
 ```{r}
-ggplot(economics, aes(date_factor, unemploy)) +
+ggplot(economics, aes(as.factor(date), unemploy)) +
   geom_line()
 ```
 
 ### multiple observations
 
-By default, `geom_line` now connects dots for all observations **within** each factor level. Observations from different factor levels are never connected.
+`geom_line` connects all dots **within** a category, never across different categories.
 
 ```{r}
-ggplot(economics_multi, aes(date_factor, unemploy)) +
+ggplot(economics_multi, aes(as.factor(date), unemploy)) +
   geom_line()
 ```
 
-## **continuous vs continuous**
+Different examples for multiple values per category, but this time the x-axis is of type `chr`. You can see the same pattern: values within a category are connected, but values from different categories are not connected.
 
-Same default behavior: the x-axis is sorted.
+```{r}
+ggplot(economics, aes(category, unemploy)) +
+  geom_line()
+```
+
+::: callout-note
+- **only** for categorical (`chr`, `factor`) x-axis, dates are treated differently
+
+- different from ECharts where you can create series as you like, allowing you to connect dots from separate categories.
+:::
+
+## **continuous vs continuous**
 
 ```{r}
 ggplot(economics, aes(unemploy, pop)) +
@@ -117,7 +144,7 @@ ggplot(economics, aes(unemploy, pop)) +
 
 ## `chr` and `fct` colour aesthetic
 
-`chr` variables are internally coerced into a `factor`, so the behavior is identical. In Adept, we should stick to `CATEGORY` in my opinion and not do any internal coercion to other types.
+`chr` variables are internally coerced into a `factor`, so the behavior is identical. In my opinion, in Adept, we should stick to `CATEGORY` and not do any internal coercion to other types.
 
 ```{r}
 #| out-width: "100%"
@@ -143,9 +170,19 @@ ggplot(economics, aes(x = date, y = unemploy, colour = pop)) +
   geom_line()
 ```
 
+::: {callout-important}
+### Conclusions
+
+- ggplot2's default group is the interaction of the *discrete* aesthetics only. Continuous aesthetics never feed into grouping.
+
+- `factor` and `chr` values are handled as discrete variables in ggplot. By default, a discrete variable mapped to a grouping aesthetic connects within its levels, not across.
+
+- `date`s are not handled like categorical values, their handling resembles more like that of continuous variables. Dates are numeric under the hood. This is why mapping a date variable to e.g the colour aesthetic produces a continuous color scale.
+:::
+
 # Most likely use case: time series
 
-A very common (and probably the most frequent) use case for line charts are time series: date(time) *vs* some continuous quantity. Additionally,
+A very common (and probably our most frequent one) use case for line charts are **time series**: date(time) *vs* some continuous quantity. Additionally,
 
 - a **third (categorical) mapping** to create one line par unique value mapping variable value
 
@@ -246,6 +283,10 @@ ggplot(raw_data, aes(date, response_time)) +
   geom_line()
 ```
 
+```{r}
+
+```
+
 Introducing a summary function to summarize individual points per unique x-axis is the better choice here. In ggplot you can do this without any explicit data transformations using `stat_summary`:
 
 ::: callout-note
@@ -274,7 +315,7 @@ ggplot(economics, aes(date, unemploy, colour=pop)) +
   geom_line(key_glyph="timeseries")
 ```
 
-- Mapping (not x or y) to date variables. ggplot uses a specialized continuous scale.
+- Mapping (not x or y) to date variables. ggplot uses a specialized continuous scale. Remember that dates are numeric under the hood.
 
 ```{r}
 ggplot(economics, aes(date, unemploy, colour=date)) +
@@ -283,37 +324,53 @@ ggplot(economics, aes(date, unemploy, colour=date)) +
 
 - Mapping (not x or y) to categorical variables with multiple values per category
 
-```{r}
-ggplot(raw_data, aes(date, response_time)) +
-  geom_line()
-```
+<!-- -->
 
-- multiple mappings (not x or y) (4th, 5th, dimension...)
+- Multiple mappings (not x or y) (4th, 5th, dimension...)
 
 - Mapping (not x or y) to categorical variables with too many groups. What should be the cutoff. Note that below you only see the legend.
 
 ```{r}
-ggplot(economics, aes(date, unemploy, colour=date_factor)) +
+ggplot(economics, aes(date, unemploy, colour=as.factor(date))) +
   geom_line(key_glyph="timeseries")
 ```
 
-- how to handle `N/A`s
+- `N/A` handling
+
+## Questions to answer
+
+- How to format the time axis labels? our date objects are all iso8601 on the client side even if they only contains a time component... in that case showing only the time is better? or let echarts run its default parser?
+
+  - check the raw_data dataset in Adept and plot date vs response time
 
 # Compatibility Table
 
 ## X and Y
 
-| X | Y | Supported (technically) | Supported (practically) | Notes |
-|---------------|---------------|---------------|---------------|---------------|
-| categorical | categorical | NO | NO |  |
-| categorical (1 obs. per category) | continuous | YES | NO |  |
-| categorical (multiple obs. per category) | continuous | YES | NO |  |
-| continuous | continuous | **YES** | **YES** |  |
-| time | continuous | **YES** | **YES** |  |
++------------------------------------------+-------------+-------------------------+-------------------------+-----------+
+| X                                        | Y           | Supported (technically) | Supported (practically) | Notes     |
++==========================================+=============+=========================+=========================+===========+
+| categorical                              | categorical | NO                      | NO                      |           |
++------------------------------------------+-------------+-------------------------+-------------------------+-----------+
+| categorical (1 obs. per category)        | continuous  | YES                     | NO                      |           |
++------------------------------------------+-------------+-------------------------+-------------------------+-----------+
+| categorical (multiple obs. per category) | continuous  | YES                     | NO                      |           |
++------------------------------------------+-------------+-------------------------+-------------------------+-----------+
+| continuous                               | continuous  | **YES**                 | **YES**                 |           |
++------------------------------------------+-------------+-------------------------+-------------------------+-----------+
+| time                                     | continuous  | **YES**                 | **YES**                 |           |
++------------------------------------------+-------------+-------------------------+-------------------------+-----------+
 
 ## Additional mappings
 
-| Mapping | Supported (technically) | Supported (practically) | Note |
-|----|----|----|----|
-| categorical | **YES** | **YES** |  |
-| continuous | YES | **NO** | ECharts limitation (?) |
++-------------+-------------------------+-------------------------+----------------------------------------------------------------------+
+| Mapping     | Supported (technically) | Supported (practically) | Note                                                                 |
++=============+=========================+=========================+======================================================================+
+| categorical | **YES**                 | **YES**                 |                                                                      |
++-------------+-------------------------+-------------------------+----------------------------------------------------------------------+
+| datetime    | YES                     | YES                     | ggplot: special continuous scale                                     |
+|             |                         |                         |                                                                      |
+|             |                         |                         | adept (currently): categorical scale, one series per unique datetime |
++-------------+-------------------------+-------------------------+----------------------------------------------------------------------+
+| continuous  | YES                     | **NO**                  | ECharts limitation (?)                                               |
++-------------+-------------------------+-------------------------+----------------------------------------------------------------------+
