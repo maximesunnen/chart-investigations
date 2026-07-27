@@ -11,6 +11,7 @@ editor: visual
 library(ggplot2)
 library(dplyr)
 library(patchwork)
+library(tidyr)
 
 economics <- economics |>
   mutate(category = rep(c("A", "B", "C"), length.out = n()))
@@ -91,4 +92,24 @@ ggplot(economics, aes(x=date, y=category)) +
 ```{r}
 p <- ggplot(mpg, aes(class, hwy))
 p + geom_boxplot()
+```
+
+- do we want to show outliers? our current endpoint for the boxplot does not return outliers, so we would need to compute them ourself...
+
+  - which would be very sub-optimal, because our endpoint only returns us the computed 5-summary statistic
+
+  - to compute outliers, we would need to send filter queries again to search for data points in a column above and below a certain threshold...
+
+```{r}
+p <- ggplot(economics, aes(y=unemploy)) + 
+  geom_boxplot()
+
+layer_data(p, 1)
+
+d <- layer_data(p, 1)
+lab <- tidyr::pivot_longer(d[, c("x","ymin","lower","middle","upper","ymax")],
+                           -x, values_to = "v")
+
+p + geom_text(data = lab, aes(x = x, y = v, label = round(v, 1)),
+              inherit.aes = FALSE, hjust = -0.3, size = 3)
 ```
