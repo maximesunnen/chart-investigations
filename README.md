@@ -2,8 +2,12 @@
 
 **Points**
 
-- What to do by default with long labels on the X and on the Y? 
+- Axis
+	- What to do by default with long labels on the X and on the Y? 
+	- Dates: What to show by default? use default renderer from echarts (used for box plot) or show ISO (used for bar charts)
+- Boxplot: show outlyers
 - Show or not the legend by default based on the chart type/selected options
+- Give a way to the user to reset the axis names if changed
 
 **1. Scatter plot**
 
