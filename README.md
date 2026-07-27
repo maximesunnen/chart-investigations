@@ -2,13 +2,13 @@
 
 **Points**
 
-- Axis
-	- What to do by default with long labels on the X and on the Y? 
-	- Dates: What to show by default? use default renderer from echarts (used for box plot) or show ISO (used for bar charts)
-- Boxplot: show outlyers
-- Show or not the legend by default based on the chart type/selected options
-- Give a way to the user to reset the axis names if changed
-- Some situations require us to use **multiple** technical series to represent **one** logical series, which results in the legend showing multiple series which is wrong. The legend should be a logical representation of what we are displaying and not what echarts is actually doing under the hood. e.g.
+- [ ] Axis
+	- [ ] What to do by default with long labels on the X and on the Y? 
+	- [ ] Dates: What to show by default? use default renderer from echarts (used for box plot) or show ISO (used for bar charts)
+- [x] Boxplot: show outlyers
+- [ ] Show or not the legend by default based on the chart type/selected options
+- [ ] Give a way to the user to reset the axis names if changed
+- [ ] Some situations require us to use **multiple** technical series to represent **one** logical series, which results in the legend showing multiple series which is wrong. The legend should be a logical representation of what we are displaying and not what echarts is actually doing under the hood. e.g.
   ![[Pasted image 20260727141235.png]]
 
 **1. Scatter plot**
