@@ -120,6 +120,9 @@ ggplot(diamonds, aes(y=carat)) +
   geom_histogram(show.legend = FALSE)
 ```
 
+::: {callout.warning}
+This is not possible in ECharts.
+:::
 
 ## Important considerations
 
@@ -135,13 +138,51 @@ Depending on your visualization goals, you may want to change the units on the v
 
 The choice of axis units will depend on what kinds of comparisons you want to emphasize about the data distribution.
 
+### Where bins start is important
+Two histograms can have the same bin-width and still look different. The exact look depends also on where the first bin starts.You can control this with the `boundary` parameter.
+
+::: {.callout-note}
+`boundary = 0`: "Require that one bin edge falls exactly on the value 0." The complete set of possible edges is an infinite grid:
+
+```
+..., boundary − 2·binwidth, boundary − binwidth, boundary, boundary + binwidth, boundary + 2·binwidth, ...
+```
+
+In other words, every edge is `boundary + n × binwidth` for some integer n. With `boundary = 0` and `binwidth = 1000`, that grid is:
+
+```
+..., -1000, 0, 1000, 2000, 3000, 4000, ...
+```
+
+ggplot then just keeps whichever bins in that grid are needed to cover your data.
+
+With `boundary = 250` and `binwidth = 1000`, the grid is:
+
+```
+..., 250, 1250, 2250, 3250, 4250, ...
+```
+:::
+
+```{r}
+default_boundary <- ggplot(economics, aes(unemploy)) + 
+  geom_histogram(binwidth=1000)
+
+custom_boundary_1 <- ggplot(economics, aes(unemploy)) + 
+  geom_histogram(binwidth=1000, boundary = 0)
+
+custom_boundary_2 <- ggplot(economics, aes(unemploy)) + 
+  geom_histogram(binwidth=1000, boundary = 250)
+
+default_boundary + custom_boundary_1 + custom_boundary_2
+```
+
 ## Questions
 
 - handling of missing values?
 
 - When a value is on a bin boundary, it will consistently be assigned to the bin on its right or its left (or into the end bins if it is on the end points). Which side is chosen depends on the visualization tool; some tools have the option to override their default preference.
 
-  - how is Echarts doing this? not extremely important but more as a documentation for us
+  - how is ECharts doing this? not extremely important but more as a documentation for us
 
 ## Variable type constraints
 
@@ -151,3 +192,6 @@ The choice of axis units will depend on what kinds of comparisons you want to em
 [^baseline]: <https://www.atlassian.com/data/charts/histogram-complete-guide>
 
 [^bins]: <https://wzbillings.com/posts/2022-12-17_histogram-bins/>
+
+
+
