@@ -1,0 +1,70 @@
+---
+title: "Scatter plot"
+format: html
+editor: visual
+---
+
+```{r}
+#| include: false
+library(readr)
+library(ggplot2)
+library(dplyr)
+```
+
+```{r}
+#| include: false
+albums <- read_csv("data/albums.csv")
+# top_artists <- albums |>
+#   count(artist, sort = TRUE) |>
+#   slice_head(n = 3) |>
+#   pull(artist)
+# albums <- filter(albums, artist %in% top_artists)
+```
+
+### 1. x:cont y:disc
+
+```{r}
+albums |>
+  ggplot(aes(x=rating, y=artist)) +
+  geom_jitter(width=0, height=0.2, alpha=0.5)
+  # equivalent: geom_point(position=position_jitter(width=0, height=0.2), alpha=0.5)
+```
+
+### 2. x:disc y:cont
+
+```{r}
+albums |>
+  ggplot(aes(x=artist, y=rating)) +
+  geom_jitter(width=0.2, height=0, alpha=0.5)
+  # equivalent: geom_point(position=position_jitter(width=0.2, height=0), alpha=0.5)
+```
+
+### 3. x:cont y:cont
+
+```{r}
+albums |>
+  ggplot(aes(x=tracks, y=rating)) +
+  geom_point(alpha=0.5)
+```
+
+### 4. x:time y:cont
+
+```{r}
+albums |>
+  ggplot(aes(x=year, y=rating)) +
+  geom_point(alpha=0.5)
+```
+
+### 5. x:cont y:time
+
+```{r}
+albums |>
+  ggplot(aes(x=rating, y=year)) +
+  geom_point(alpha=0.5)
+```
+
+```{r}
+albums |>
+  ggplot(aes(x=project_type, y=tracks)) +
+  geom_jitter(width=0.2, height=0, alpha=0.5)
+```
