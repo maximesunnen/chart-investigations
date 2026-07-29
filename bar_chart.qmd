@@ -1,0 +1,105 @@
+---
+title: "Bar chart"
+format: html
+editor: visual
+---
+
+```{r}
+#| include: false
+library(readr)
+library(ggplot2)
+library(dplyr)
+```
+
+```{r}
+#| include: false
+albums <- read_csv("data/albums.csv")
+top_artists <- albums |>
+  count(artist, sort = TRUE) |>
+  slice_head(n = 3) |>
+  pull(artist)
+albums <- filter(albums, artist %in% top_artists)
+```
+
+## Sample data
+
+```{r}
+#| echo: false
+knitr::kable(albums)
+```
+
+### 1. x:disc y:none agg:count
+
+Uses count(x) by default for y axis
+
+```{r}
+albums |>
+  ggplot(aes(x=artist)) +
+  geom_bar()
+```
+
+### 2. x:none y:disc agg:count
+
+Uses count(y) by default for x axis
+
+```{r}
+albums |>
+  ggplot(aes(y=artist)) +
+  geom_bar()
+```
+
+### 3. x:disc y:cont agg:mean
+
+Aggregates y with mean per x
+
+```{r}
+albums |>
+  ggplot(aes(x=artist, y=rating)) +
+  geom_bar(stat="summary", fun="mean")
+```
+
+### 4. x:cont y:disc agg:mean
+
+Aggregates x with mean per y (horizontal)
+
+```{r}
+albums |>
+  ggplot(aes(x=rating, y=artist)) +
+  geom_bar(stat="summary", fun="mean", orientation="y")
+```
+
+### 5. x:disc y:cont agg:none
+
+a\. One bar per row, in dataset order, no grouping or reordering (Currently in adept)
+
+```{r}
+albums |>
+  mutate(row = row_number()) |>
+  ggplot(aes(x=factor(row), y=rating)) +
+  geom_col(width=1, color="black") +
+  scale_x_discrete(labels = albums$artist)
+```
+
+b\. By default it shows the sums of the y by stacking them up
+
+```{r}
+albums |>
+  ggplot(aes(x=artist, y=rating)) +
+  geom_col(color="black")
+```
+
+c\. With dodging (Probably a better default in adept?)\
+
+```{r}
+albums |>
+  ggplot(aes(x=artist, y=rating, group=project_name)) +
+  geom_col(position="dodge", color="black")
+```
+
+### 6. x:cont y:disc agg:none
+
+```{r}
+albums |>
+  ggplot(aes(x=rating, y=artist, group=project_name)) +
+  geom_col(position="dodge", color="black")
+```
