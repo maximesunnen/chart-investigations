@@ -113,3 +113,45 @@ lab <- tidyr::pivot_longer(d[, c("x","ymin","lower","middle","upper","ymax")],
 p + geom_text(data = lab, aes(x = x, y = v, label = round(v, 1)),
               inherit.aes = FALSE, hjust = -0.3, size = 3)
 ```
+
+## Five point summary calculation methods
+
+Confirmed ggplot uses R-7 (linear interpolation, `type = 7`).
+
+### Example
+
+```         
+pos:  1   2   3   4   5   6   7   8   9
+val: 29  29  32  32  32  32  33  36  36
+```
+
+n = 9. The median (Q2) is the 5th value = **32**. Every tool agrees on it, because the median sits on a single unambiguous position for odd n.
+
+### The problem
+
+Q1 and Q3 are the 25th and 75th percentiles. These are *positions* along the sorted data ("a quarter of the way through 9 values"), not data points. That position generally falls *between* two observations, so each tool needs a rule for where exactly to place it and how to interpolate. There are about nine standard rules (R types 1–9) plus non-standard ones. Same data with a different rule leads to different Q1/Q3. The data doesn't change, only the placement convention does.
+
+### What ggplot uses
+
+`geom_boxplot` / `stat_boxplot` calls R's `stats::quantile` with **type 7** (the default; it's now exposable as a parameter, but 7 is the default). Type 7 is linear interpolation on the position `(n − 1)·p + 1`:
+
+- Q1: (9−1)·0.25 + 1 = position 3 → **32**
+- Q3: (9−1)·0.75 + 1 = position 7 → **33**
+
+Here both land *exactly* on data points, so no interpolation is even needed, and ggplot returns **32 / 32 / 33**. Note this is type 7, deliberately *not* the Tukey "hinges" that base R's `boxplot()` uses. ggplot's docs call out that they differ slightly on small samples.
+
+### What Elasticsearch uses
+
+The percentiles aggregation does **not** use a textbook quantile type at all. By default it uses **TDigest**, an approximate algorithm built to scale to billions of values: it compresses the data into weighted "centroids" and interpolates percentiles between centroid centers. The practical consequences:
+
+- For a tiny input like this one it's effectively exact, but the interpolation convention is its own (centroid-based), so its Q1/Q3 must not equal ggplot's type-7 values.
+
+- It is explicitly **non-deterministic**, so the same data can yield slightly different numbers across runs, and accuracy is tunable via a `compression` parameter.
+
+- An alternative, **HDR histogram**, can be requested for fixed-precision behavior instead.
+
+### Conclusion
+- ggplot = deterministic textbook interpolation (R type 7)
+- Elasticsearch = an approximate, tunable, centroid-based estimator (TDigest) designed for scale.
+
+**One flag worth checking.** The clean **30.5 / 34.5** you saw earlier is exactly the *exclusive / Tukey* textbook method (median of each half with the median excluded — R-6-style). That's a specific stats convention, and it is *not* what Elasticsearch's default TDigest computes — TDigest produces algorithm-specific values, not tidy textbook ones. If some tool gave you 30.5 / 34.5, that tool was using the exclusive method, so double-check whether those numbers actually came from Elasticsearch or from a different library.
