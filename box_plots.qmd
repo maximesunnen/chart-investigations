@@ -4,6 +4,10 @@ format: html
 editor: visual
 ---
 
+::: {.callout.danger}
+https://www.elastic.co/docs/reference/aggregations/search-aggregations-metrics-boxplot-aggregation#search-aggregations-metrics-boxplot-aggregation-approximation
+:::
+
 ## Box Plots
 
 ```{r}
@@ -94,6 +98,10 @@ p <- ggplot(mpg, aes(class, hwy))
 p + geom_boxplot()
 ```
 
+- how to handle long labels on the x: currently, we let echarts hide them on overlap, which is not great
+
+  - but we will always hit a limit...
+
 - do we want to show outliers? our current endpoint for the boxplot does not return outliers, so we would need to compute them ourself...
 
   - which would be very sub-optimal, because our endpoint only returns us the computed 5-summary statistic
@@ -151,7 +159,8 @@ The percentiles aggregation does **not** use a textbook quantile type at all. By
 - An alternative, **HDR histogram**, can be requested for fixed-precision behavior instead.
 
 ### Conclusion
+
 - ggplot = deterministic textbook interpolation (R type 7)
 - Elasticsearch = an approximate, tunable, centroid-based estimator (TDigest) designed for scale.
 
-**One flag worth checking.** The clean **30.5 / 34.5** you saw earlier is exactly the *exclusive / Tukey* textbook method (median of each half with the median excluded — R-6-style). That's a specific stats convention, and it is *not* what Elasticsearch's default TDigest computes — TDigest produces algorithm-specific values, not tidy textbook ones. If some tool gave you 30.5 / 34.5, that tool was using the exclusive method, so double-check whether those numbers actually came from Elasticsearch or from a different library.
+**One flag worth checking.** The clean **30.5 / 34.5** is exactly the *exclusive / Tukey* textbook method (median of each half with the median excluded, R-6-style). That's a specific stats convention, and it is *not* what Elasticsearch's default TDigest computes. TDigest produces algorithm-specific values, not tidy textbook ones. If some tool gives 30.5 / 34.5, that tool is using the exclusive method.
